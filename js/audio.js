@@ -10,21 +10,30 @@ let mediaStream = null;
 
 export async function startPCM(stream) {
   mediaStream = stream;
-  // Some browsers won't honor requested sampleRate; we'll resample later anyway.
   ctx = new (window.AudioContext || window.webkitAudioContext)();
-  // Load the recorder worklet
-await ctx.audioWorklet.addModule(new URL('./recorder-worklet.js', import.meta.url));
+
+  if (!ctx.audioWorklet) {
+    throw new Error('AudioWorklet not supported');
+  }
+
+  try {
+    await ctx.audioWorklet.addModule(new URL('./recorder-worklet.js', import.meta.url));
+  } catch (e) {
+    console.error('AudioWorklet addModule failed:', e);
+    throw e; // main.js will catch and show a message instead of freezing the UI
+  }
 
   source = ctx.createMediaStreamSource(stream);
   node = new AudioWorkletNode(ctx, 'recorder');
 
-  // Collect Float32 frames from the worklet
   pcmChunks = [];
   node.port.onmessage = (e) => {
-    if (e.data?.type === 'data' && e.data.buffer) {
-      pcmChunks.push(e.data.buffer);
-    }
+    if (e.data?.type === 'data' && e.data.buffer) pcmChunks.push(e.data.buffer);
   };
+
+  const sink = ctx.createGain(); sink.gain.value = 0;
+  source.connect(node); node.connect(sink).connect(ctx.destination);
+}
 
   // Connect the graph; we don't need audible output
   source.connect(node);
