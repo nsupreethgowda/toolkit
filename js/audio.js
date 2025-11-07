@@ -13,7 +13,7 @@ export async function startPCM(stream) {
   // Some browsers won't honor requested sampleRate; we'll resample later anyway.
   ctx = new (window.AudioContext || window.webkitAudioContext)();
   // Load the recorder worklet
-  await ctx.audioWorklet.addModule('js/recorder-worklet.js');
+await ctx.audioWorklet.addModule(new URL('./recorder-worklet.js', import.meta.url));
 
   source = ctx.createMediaStreamSource(stream);
   node = new AudioWorkletNode(ctx, 'recorder');
