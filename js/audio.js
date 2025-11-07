@@ -8,6 +8,8 @@ let node = null;
 let pcmChunks = [];
 let mediaStream = null;
 
+await ctx.audioWorklet.addModule(new URL('./recorder-worklet.js', import.meta.url));
+
 export async function startPCM(stream) {
   mediaStream = stream;
   ctx = new (window.AudioContext || window.webkitAudioContext)();
