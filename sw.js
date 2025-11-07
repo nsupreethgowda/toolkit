@@ -1,11 +1,14 @@
 // Robust SW with explicit version to invalidate old caches
-const CACHE = 'app-cache-v15';
+const CACHE = 'app-cache-v16';
 const OFFLINE_URLS = [
-  '/', '/index.html', '/manifest.webmanifest',
-  '/css/themes.css', '/js/main.js', '/js/ui.js', '/js/pwa.js', '/js/menu.js',
-  // CDN CSS is fine to cache opportunistically
-  'https://unpkg.com/@picocss/pico@2/css/pico.min.css'
+  '/', '/index.html', '/rules.html',
+  '/css/themes.css',
+  '/js/main.js', '/js/ui.js', '/js/pwa.js', '/js/menu.js',
+  '/js/format.js', '/js/format-flags.js', '/js/rule-loader.js',
+  '/rules/index.json', '/rules/general-soap.json', '/rules/neurology-stroke.json'
 ];
+// keep your existing fetch handler that skips cross-origin
+
 
 self.addEventListener('install', (e) => {
   e.waitUntil((async () => {
