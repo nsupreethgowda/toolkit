@@ -74,8 +74,7 @@ btn.addEventListener('click', async () => {
 
 // Copy transcript
 document.getElementById('copy-btn').addEventListener('click', async () => {
-  const area = document.getElementById('transcript');
-  const text = Array.from(area.querySelectorAll('p')).map(p => p.textContent).join('\n\n');
+  const text = getTranscriptPlainText(); // already normalized with paragraph breaks
   try {
     await navigator.clipboard.writeText(text);
     const c = document.getElementById('copy-btn');
