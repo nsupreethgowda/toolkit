@@ -4,105 +4,57 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>NeuroToolkit</title>
+
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f766e">
+
+  <!-- Minimal base CSS (Pico for layout) -->
   <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2/css/pico.min.css">
+  <!-- Your consistent themes -->
+  <link rel="stylesheet" href="css/themes.css">
 
   <style>
-    :root { --brand: #0f766e; --ok: #16a34a; --warn: #dc2626; }
+    /* Small layout rules kept here for simplicity */
     body { text-align: center; margin-top: 8vh; }
     h1 { margin-bottom: 2rem; font-size: 2.5rem; color: var(--brand); }
 
     .voice-btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      border: none; border-radius: 9999px; padding: 1.25rem 2rem;
-      font-weight: 600; font-size: 1.1rem; cursor: pointer; color: #fff;
-      background: var(--ok); transition: background .2s ease, transform .1s ease;
-      box-shadow: 0 4px 10px rgba(0,0,0,.2);
+      display:inline-flex; align-items:center; justify-content:center;
+      border:0; border-radius:9999px; padding:1.25rem 2rem;
+      font-weight:600; font-size:1.1rem; cursor:pointer; color:#fff;
+      background: var(--ok); transition: background .2s, transform .1s;
+      box-shadow:0 4px 10px rgba(0,0,0,.2);
     }
     .voice-btn.active { background: var(--warn); }
     .voice-btn:active { transform: translateY(1px); }
-    .icon { width: 2rem; height: 2rem; margin-right: .75rem; }
+    .icon { width:2rem; height:2rem; margin-right:.75rem; }
 
-    .voice-status { margin-top: 0.75rem; font-size: 1.1rem; font-weight: 600; }
-
-    /* Timer */
+    .voice-status { margin-top:.75rem; font-size:1.1rem; font-weight:600; }
     .rec-row { display:flex; align-items:center; justify-content:center; gap:.5rem; margin-top:.25rem; }
-    .timer {
-      display:inline-flex; align-items:center; gap:.4rem; font-weight:600;
-      font-variant-numeric: tabular-nums; color:#374151;
-    }
-    .dot {
-      width:10px; height:10px; border-radius:50%; background: var(--warn);
-      opacity:0; transform: scale(.9);
-    }
-    .recording .dot { animation: pulse 1.2s ease-in-out infinite; opacity:1; }
-    @keyframes pulse {
-      0%,100% { transform: scale(.9); opacity:.5; }
-      50%     { transform: scale(1); opacity:1; }
-    }
+    .timer { display:inline-flex; align-items:center; gap:.4rem; font-weight:600; font-variant-numeric:tabular-nums; }
+    .dot { width:10px; height:10px; border-radius:50%; background: var(--warn); opacity:0; transform:scale(.9) }
+    .recording .dot { animation:pulse 1.2s ease-in-out infinite; opacity:1 }
+    @keyframes pulse { 0%,100%{transform:scale(.9);opacity:.5} 50%{transform:scale(1);opacity:1} }
 
-    /* Spinner */
-    .spinner-wrap {
-      display: inline-flex; align-items: center; gap: .6rem;
-      margin-top: .75rem; min-height: 2rem;
-    }
-    .spinner {
-      width: 18px; height: 18px; border-radius: 50%;
-      border: 3px solid #d1d5db; border-top-color: var(--brand);
-      animation: spin 1s linear infinite; display: none;
-    }
-    .spinner.show { display:inline-block; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .muted { color:#6b7280; font-size:.9rem; }
+    .spinner-wrap { display:inline-flex; align-items:center; gap:.6rem; margin-top:.75rem; min-height:2rem; }
+    .spinner { width:18px;height:18px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--brand);animation:spin 1s linear infinite; display:none }
+    .spinner.show { display:inline-block }
+    @keyframes spin { to { transform: rotate(360deg) } }
 
-    /* Transcript */
-    .section { max-width: 800px; margin: 2rem auto; text-align: left; }
+    .section { max-width:800px; margin:2rem auto; text-align:left; }
     .row { display:flex; align-items:center; justify-content:space-between; gap:.75rem; }
-    .row h2 { margin: 0; font-size: 1.1rem; }
-    .copy-btn {
-      font-size: .85rem; padding: .35rem .6rem; border-radius: .5rem;
-      border: 1px solid #d1d5db; background: #f9fafb; cursor: pointer;
-    }
-    .transcript {
-      margin-top: .75rem; padding: .75rem; border: 1px solid #e5e7eb; border-radius: .5rem;
-      background: var(--pico-card-background-color, #fff);
-    }
-    .transcript p { margin: 0 0 .8rem 0; line-height: 1.55; }
-    .transcript p:last-child { margin-bottom: 0; }
+    .transcript { margin-top:.75rem; padding:.75rem; border:1px solid var(--border); border-radius:.5rem; background: var(--card); }
+    .transcript p { margin:0 0 .8rem 0; line-height:1.55; }
+    .copy-btn { font-size:.85rem; padding:.35rem .6rem; border-radius:.5rem; border:1px solid var(--border); background: var(--surface); }
 
-    /* Hamburger + Menu */
+    /* Hamburger top-left (desktop), bottom-left (mobile) */
     .hamburger {
-      position: fixed; left: 1rem; z-index: 1000;
-      display: inline-flex; align-items:center; justify-content:center;
-      width: 42px; height: 42px; border-radius: 10px; border: 1px solid #d1d5db;
-      background: #ffffffcc; backdrop-filter: blur(6px); cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,.1);
-      top: 1rem;
+      position:fixed; left:1rem; z-index:1000; width:42px; height:42px;
+      display:inline-flex; align-items:center; justify-content:center;
+      border-radius:10px; border:1px solid var(--border); background: var(--glass); backdrop-filter: blur(6px);
+      box-shadow:0 2px 8px rgba(0,0,0,.1); top:1rem;
     }
-    @media (max-width: 768px) { .hamburger { top: auto; bottom: 1rem; } }
-
-    .menu {
-      position: fixed; left: 1rem; z-index: 1001; width: 240px;
-      border: 1px solid #d1d5db; border-radius: 12px; padding: .6rem;
-      background: #ffffff; box-shadow: 0 10px 30px rgba(0,0,0,.15);
-      display: none;
-    }
-    .menu.open { display: block; }
-    .menu .item { display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.5rem; }
-    .menu hr { margin:.4rem 0; }
-    .menu-btn, .toggle-theme {
-      font-size: .9rem; padding: .35rem .6rem; border-radius: .5rem;
-      border: 1px solid #d1d5db; background: #f9fafb; cursor: pointer;
-    }
-
-    /* Dark theme tweaks */
-    html[data-theme="dark"] .hamburger,
-    html[data-theme="dark"] .menu { background: #111827cc; border-color:#374151; color:#e5e7eb; }
-    html[data-theme="dark"] .menu-btn, 
-    html[data-theme="dark"] .toggle-theme { background:#1f2937; border-color:#374151; color:#e5e7eb; }
-    html[data-theme="dark"] .transcript { border-color:#374151; background:#111827; }
-    html[data-theme="dark"] .copy-btn { background:#1f2937; border-color:#374151; color:#e5e7eb; }
+    @media (max-width:768px) { .hamburger { top:auto; bottom:1rem; } }
   </style>
 </head>
 
@@ -115,18 +67,8 @@
       </svg>
     </button>
 
-    <!-- Menu -->
-    <div id="menu" class="menu" role="menu" aria-labelledby="hamburger">
-      <div class="item">
-        <span>Theme</span>
-        <button id="toggle-theme" class="toggle-theme" role="menuitem">Switch to Dark</button>
-      </div>
-      <hr />
-      <div class="item">
-        <span>Cache & SW</span>
-        <button id="force-reload" class="menu-btn" role="menuitem">Force reload</button>
-      </div>
-    </div>
+    <!-- Slideout menu (rendered by menu.js) -->
+    <div id="menu-root"></div>
 
     <h1>NeuroToolkit</h1>
 
@@ -139,7 +81,6 @@
 
     <div id="voice-status" class="voice-status">Idle</div>
 
-    <!-- Timer row -->
     <div id="rec-row" class="rec-row" aria-live="polite">
       <span id="timer" class="timer"><span class="dot" aria-hidden="true"></span><span id="timer-text">00:00</span></span>
     </div>
@@ -162,252 +103,7 @@
     <p>Status: <span id="net-status">checking…</span></p>
   </main>
 
-  <script type="module">
-    // Theme (default light)
-    const root = document.documentElement;
-    const savedTheme = localStorage.getItem('theme');
-    root.setAttribute('data-theme', (savedTheme === 'dark' || savedTheme === 'light') ? savedTheme : 'light');
-    const toggleThemeBtn = document.getElementById('toggle-theme');
-    function updateThemeButton() {
-      const isDark = root.getAttribute('data-theme') === 'dark';
-      toggleThemeBtn.textContent = isDark ? 'Switch to Light' : 'Switch to Dark';
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#111827' : '#0f766e');
-    }
-    updateThemeButton();
-    toggleThemeBtn.addEventListener('click', () => {
-      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      root.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
-      updateThemeButton();
-    });
-
-    // Hamburger menu
-    const hamburger = document.getElementById('hamburger');
-    const menu = document.getElementById('menu');
-    function closeMenuOnOutside(e) {
-      if (!menu.contains(e.target) && e.target !== hamburger) {
-        menu.classList.remove('open');
-        hamburger.setAttribute('aria-expanded', 'false');
-        document.removeEventListener('click', closeMenuOnOutside);
-      }
-    }
-    hamburger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const open = menu.classList.toggle('open');
-      hamburger.setAttribute('aria-expanded', String(open));
-      if (open) document.addEventListener('click', closeMenuOnOutside);
-    });
-
-    // Online/offline
-    const netEl = document.getElementById('net-status');
-    function updateNet() { netEl.textContent = navigator.onLine ? 'online' : 'offline'; }
-    addEventListener('online', updateNet); addEventListener('offline', updateNet); updateNet();
-
-    // Register SW
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=8');
-    }
-
-    // UI refs
-    const btn = document.getElementById('voice-btn');
-    const btnLabel = document.getElementById('voice-btn-label');
-    const statusEl = document.getElementById('voice-status');
-    const transcriptEl = document.getElementById('transcript');
-    const copyBtn = document.getElementById('copy-btn');
-    const spinner = document.getElementById('spinner');
-    const spinnerText = document.getElementById('spinner-text');
-    const forceReloadBtn = document.getElementById('force-reload');
-    const recRow = document.getElementById('rec-row');
-    const timerEl = document.getElementById('timer');
-    const timerTextEl = document.getElementById('timer-text');
-
-    let isActive = false;
-    let mediaRecorder;
-    let recordedChunks = [];
-    let audioStream;
-    let asrPipeline = null; // lazy-loaded
-    let timerInterval = null;
-    let startMs = 0;
-
-    function setStatus(text) { statusEl.textContent = text; }
-    function showSpinner(text='') {
-      spinner.classList.add('show');
-      spinner.setAttribute('aria-hidden', 'false');
-      spinnerText.textContent = text;
-    }
-    function hideSpinner() {
-      spinner.classList.remove('show');
-      spinner.setAttribute('aria-hidden', 'true');
-      spinnerText.textContent = '';
-    }
-
-    // Timer helpers
-    function startTimer() {
-      startMs = Date.now();
-      timerEl.parentElement.classList.add('recording');
-      updateTimer(); // immediate tick
-      timerInterval = setInterval(updateTimer, 1000);
-    }
-    function stopTimer() {
-      clearInterval(timerInterval);
-      timerInterval = null;
-      timerTextEl.textContent = '00:00';
-      timerEl.parentElement.classList.remove('recording');
-    }
-    function updateTimer() {
-      const elapsed = Math.max(0, Date.now() - startMs);
-      const totalSec = Math.floor(elapsed / 1000);
-      const mm = String(Math.floor(totalSec / 60)).padStart(2, '0');
-      const ss = String(totalSec % 60).padStart(2, '0');
-      timerTextEl.textContent = `${mm}:${ss}`;
-    }
-
-    // Whisper loader
-    async function ensureASR() {
-      if (asrPipeline) return asrPipeline;
-      showSpinner('Loading Whisper model… (first time may take a minute)');
-      setStatus('Loading model…');
-      const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers/dist/transformers.min.js');
-      asrPipeline = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en', { quantized: true });
-      hideSpinner();
-      setStatus('Idle');
-      return asrPipeline;
-    }
-
-    // Recording control
-    async function startRecording() {
-      try {
-        audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch {
-        setStatus('Microphone permission denied');
-        return;
-      }
-      recordedChunks = [];
-      mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
-      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
-      mediaRecorder.start();
-
-      btn.classList.add('active');
-      btn.setAttribute('aria-pressed', 'true');
-      btnLabel.textContent = 'Stop Voice Recognition';
-      setStatus('Voice recognition active');
-
-      startTimer();
-    }
-
-    async function stopRecording() {
-      if (!mediaRecorder) return;
-      await new Promise(res => { mediaRecorder.onstop = () => res(); mediaRecorder.stop(); });
-      if (audioStream) audioStream.getTracks().forEach(t => t.stop());
-
-      btn.classList.remove('active');
-      btn.setAttribute('aria-pressed', 'false');
-      btnLabel.textContent = 'Start Voice Recognition';
-
-      stopTimer();
-
-      showSpinner('Processing audio…');
-      setStatus('Processing audio…');
-
-      try {
-        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-        const audioData = await blob.arrayBuffer();
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const decoded = await ctx.decodeAudioData(audioData);
-        const mono = toMono(decoded);
-        const pcm16k = resampleFloat32(mono, decoded.sampleRate, 16000);
-
-        showSpinner('Transcribing…');
-        const asr = await ensureASR();
-        const result = await asr(pcm16k, { chunk_length_s: 30, stride_length_s: 5, return_timestamps: false });
-
-        const text = (result?.text || '').trim();
-        renderTranscript(text);
-      } catch (err) {
-        console.error(err);
-        renderTranscript('[Transcription failed]');
-      } finally {
-        hideSpinner();
-        setStatus('Idle');
-      }
-    }
-
-    // Audio helpers
-    function toMono(audioBuffer) {
-      if (audioBuffer.numberOfChannels === 1) return audioBuffer.getChannelData(0);
-      const ch0 = audioBuffer.getChannelData(0);
-      const ch1 = audioBuffer.getChannelData(1);
-      const out = new Float32Array(audioBuffer.length);
-      for (let i = 0; i < out.length; i++) out[i] = (ch0[i] + ch1[i]) / 2;
-      return out;
-    }
-    function resampleFloat32(float32, originalRate, targetRate) {
-      if (originalRate === targetRate) return float32;
-      const ratio = originalRate / targetRate;
-      const newLen = Math.round(float32.length / ratio);
-      const out = new Float32Array(newLen);
-      for (let i = 0; i < newLen; i++) {
-        const idx = i * ratio;
-        const i0 = Math.floor(idx);
-        const i1 = Math.min(i0 + 1, float32.length - 1);
-        const frac = idx - i0;
-        out[i] = float32[i0] * (1 - frac) + float32[i1] * frac;
-      }
-      return out;
-    }
-
-    // Paragraph rendering
-    const transcriptDiv = document.getElementById('transcript');
-    function renderTranscript(text) {
-      transcriptDiv.innerHTML = '';
-      if (!text) return;
-      const sentences = text.replace(/\s+/g, ' ').split(/(?<=[.!?])\s+/).filter(Boolean);
-      const groupSize = 3;
-      for (let i = 0; i < sentences.length; i += groupSize) {
-        const p = document.createElement('p');
-        p.textContent = sentences.slice(i, i + groupSize).join(' ');
-        transcriptDiv.appendChild(p);
-      }
-    }
-
-    function toggleVoice() {
-      isActive = !isActive;
-      if (isActive) startRecording().catch(() => { isActive = false; });
-      else stopRecording().catch(() => { hideSpinner(); setStatus('Idle'); stopTimer(); });
-    }
-    document.getElementById('voice-btn').addEventListener('click', toggleVoice);
-
-    // Copy transcript
-    document.getElementById('copy-btn').addEventListener('click', async () => {
-      const text = Array.from(transcriptDiv.querySelectorAll('p')).map(p => p.textContent).join('\n\n');
-      try {
-        await navigator.clipboard.writeText(text);
-        const btn = document.getElementById('copy-btn');
-        btn.textContent = 'Copied';
-        setTimeout(() => (btn.textContent = 'Copy'), 1000);
-      } catch {
-        const ta = document.createElement('textarea');
-        ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy');
-        document.body.removeChild(ta);
-      }
-    });
-
-    // Force Reload: clear SW + caches, then reload with cache-buster
-    document.getElementById('force-reload').addEventListener('click', async () => {
-      try {
-        if ('serviceWorker' in navigator) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map(r => r.unregister()));
-        }
-        if ('caches' in window) {
-          const names = await caches.keys();
-          await Promise.all(names.map(n => caches.delete(n)));
-        }
-      } catch {}
-      const url = new URL(window.location.href);
-      url.searchParams.set('force', Date.now());
-      window.location.replace(url.toString());
-    });
-  </script>
+  <!-- Minimal boot; heavy parts are lazy-loaded inside -->
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
