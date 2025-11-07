@@ -61,7 +61,7 @@ btn.addEventListener('click', async () => {
       showSpinner('Transcribing…');
       if (!asr) asr = await import('./asr.js');
       const text = await asr.transcribe(pcm16k);
-      renderTranscript(text);
+      appendTranscript(text);
     } catch (e) {
       console.error(e);
       renderTranscript('[Transcription failed]');
