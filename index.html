@@ -1,6 +1,5 @@
 <!doctype html>
 <html lang="en" data-theme="light">
-  <script type="module" src="js/main.js"></script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -9,14 +8,20 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f766e">
 
-  <!-- Minimal base CSS (Pico for layout) -->
+  <!-- Base CSS for simple layout -->
   <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2/css/pico.min.css">
-  <!-- Your consistent themes -->
+  <!-- Your unified theme variables (light/dark) -->
   <link rel="stylesheet" href="css/themes.css">
+
+  <!-- Redundancy: preloads to encourage proper MIME and caching -->
+  <link rel="preload" href="js/main.js" as="script" crossorigin>
+  <link rel="preload" href="js/ui.js" as="script" crossorigin>
+  <link rel="preload" href="js/pwa.js" as="script" crossorigin>
+
   <style>
-    /* Small layout rules kept here for simplicity */
-    body { text-align: center; margin-top: 8vh; }
-    h1 { margin-bottom: 2rem; font-size: 2.5rem; color: var(--brand); }
+    :root { --brand: #0f766e; --ok:#16a34a; --warn:#dc2626; }
+    body { text-align:center; margin-top: 8vh; }
+    h1 { margin-bottom:2rem; font-size:2.5rem; color: var(--brand); }
 
     .voice-btn {
       display:inline-flex; align-items:center; justify-content:center;
@@ -47,7 +52,6 @@
     .transcript p { margin:0 0 .8rem 0; line-height:1.55; }
     .copy-btn { font-size:.85rem; padding:.35rem .6rem; border-radius:.5rem; border:1px solid var(--border); background: var(--surface); }
 
-    /* Hamburger top-left (desktop), bottom-left (mobile) */
     .hamburger {
       position:fixed; left:1rem; z-index:1000; width:42px; height:42px;
       display:inline-flex; align-items:center; justify-content:center;
@@ -55,10 +59,16 @@
       box-shadow:0 2px 8px rgba(0,0,0,.1); top:1rem;
     }
     @media (max-width:768px) { .hamburger { top:auto; bottom:1rem; } }
+
+    .muted { font-size:.9rem; }
   </style>
 </head>
 
 <body>
+  <noscript>
+    <p style="color:#b91c1c; font-weight:600;">This app needs JavaScript enabled.</p>
+  </noscript>
+
   <main class="container">
     <!-- Hamburger -->
     <button id="hamburger" class="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="menu">
@@ -67,7 +77,7 @@
       </svg>
     </button>
 
-    <!-- Slideout menu (rendered by menu.js) -->
+    <!-- Menu root (menu.js will render the panel here) -->
     <div id="menu-root"></div>
 
     <h1>NeuroToolkit</h1>
@@ -82,7 +92,10 @@
     <div id="voice-status" class="voice-status">Idle</div>
 
     <div id="rec-row" class="rec-row" aria-live="polite">
-      <span id="timer" class="timer"><span class="dot" aria-hidden="true"></span><span id="timer-text">00:00</span></span>
+      <span id="timer" class="timer">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="timer-text">00:00</span>
+      </span>
     </div>
 
     <div class="spinner-wrap" aria-live="polite">
@@ -96,18 +109,16 @@
       <div style="margin-top:.6rem;">
         <button id="copy-btn" class="copy-btn" title="Copy transcript">Copy</button>
       </div>
-      <p class="muted">Tip: First run downloads the model for offline reuse. Subsequent runs are faster.</p>
+      <p class="muted">First run downloads the model for offline reuse. Subsequent runs are faster.</p>
     </div>
 
     <hr style="margin: 2rem 0;" />
     <p>Status: <span id="net-status">checking…</span></p>
   </main>
 
-  <!-- Minimal boot; heavy parts are lazy-loaded inside -->
+  <!-- Redundancy: tiny inline module to verify module parsing -->
+  <script type="module">console.log('[modules] inline module executed');</script>
+  <!-- Main app (ESM). Keep last so DOM is ready. -->
+  <script type="module" src="js/main.js"></script>
 </body>
-<script type="module">
-  console.log('[modules] inline module executed');
-</script>
-
-<script type="module" src="js/main.js"></script>
 </html>
