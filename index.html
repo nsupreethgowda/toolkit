@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,23 +7,56 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f766e">
   <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2/css/pico.min.css">
+
   <style>
+    :root { --brand: #0f766e; --ok: #16a34a; --warn: #dc2626; }
     body { text-align: center; margin-top: 8vh; }
-    h1 { margin-bottom: 2rem; font-size: 2.5rem; color: #0f766e; }
+    h1 { margin-bottom: 2rem; font-size: 2.5rem; color: var(--brand); }
 
     .voice-btn {
       display: inline-flex; align-items: center; justify-content: center;
       border: none; border-radius: 9999px; padding: 1.25rem 2rem;
       font-weight: 600; font-size: 1.1rem; cursor: pointer; color: #fff;
-      background: #16a34a; transition: background .2s ease, transform .1s ease;
+      background: var(--ok); transition: background .2s ease, transform .1s ease;
       box-shadow: 0 4px 10px rgba(0,0,0,.2);
     }
-    .voice-btn.active { background:#dc2626; }
+    .voice-btn.active { background: var(--warn); }
     .voice-btn:active { transform: translateY(1px); }
     .icon { width: 2rem; height: 2rem; margin-right: .75rem; }
 
-    .voice-status { margin-top: 1rem; font-size: 1.1rem; font-weight: 600; color: #374151; }
+    .voice-status { margin-top: 0.75rem; font-size: 1.1rem; font-weight: 600; }
 
+    /* Timer */
+    .rec-row { display:flex; align-items:center; justify-content:center; gap:.5rem; margin-top:.25rem; }
+    .timer {
+      display:inline-flex; align-items:center; gap:.4rem; font-weight:600;
+      font-variant-numeric: tabular-nums; color:#374151;
+    }
+    .dot {
+      width:10px; height:10px; border-radius:50%; background: var(--warn);
+      opacity:0; transform: scale(.9);
+    }
+    .recording .dot { animation: pulse 1.2s ease-in-out infinite; opacity:1; }
+    @keyframes pulse {
+      0%,100% { transform: scale(.9); opacity:.5; }
+      50%     { transform: scale(1); opacity:1; }
+    }
+
+    /* Spinner */
+    .spinner-wrap {
+      display: inline-flex; align-items: center; gap: .6rem;
+      margin-top: .75rem; min-height: 2rem;
+    }
+    .spinner {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 3px solid #d1d5db; border-top-color: var(--brand);
+      animation: spin 1s linear infinite; display: none;
+    }
+    .spinner.show { display:inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .muted { color:#6b7280; font-size:.9rem; }
+
+    /* Transcript */
     .section { max-width: 800px; margin: 2rem auto; text-align: left; }
     .row { display:flex; align-items:center; justify-content:space-between; gap:.75rem; }
     .row h2 { margin: 0; font-size: 1.1rem; }
@@ -31,39 +64,69 @@
       font-size: .85rem; padding: .35rem .6rem; border-radius: .5rem;
       border: 1px solid #d1d5db; background: #f9fafb; cursor: pointer;
     }
-    textarea {
-      width: 100%; min-height: 180px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: .95rem; padding: .75rem; border-radius: .5rem;
+    .transcript {
+      margin-top: .75rem; padding: .75rem; border: 1px solid #e5e7eb; border-radius: .5rem;
+      background: var(--pico-card-background-color, #fff);
     }
-    .muted { color:#6b7280; font-size:.9rem; }
+    .transcript p { margin: 0 0 .8rem 0; line-height: 1.55; }
+    .transcript p:last-child { margin-bottom: 0; }
 
-    /* Spinner */
-    .spinner-wrap {
-      display: inline-flex; align-items: center; gap: .6rem;
-      margin-top: .75rem; min-height: 2rem; /* reserve space to avoid layout shift */
+    /* Hamburger + Menu */
+    .hamburger {
+      position: fixed; left: 1rem; z-index: 1000;
+      display: inline-flex; align-items:center; justify-content:center;
+      width: 42px; height: 42px; border-radius: 10px; border: 1px solid #d1d5db;
+      background: #ffffffcc; backdrop-filter: blur(6px); cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      top: 1rem;
     }
-    .spinner {
-      width: 18px; height: 18px; border-radius: 50%;
-      border: 3px solid #d1d5db; border-top-color: #0f766e;
-      animation: spin 1s linear infinite; display: none;
-    }
-    .spinner.show { display:inline-block; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 768px) { .hamburger { top: auto; bottom: 1rem; } }
 
-    /* Floating Force Reload button */
-    .reload-btn {
-      position: fixed; top: 1rem; right: 1rem;
-      font-size: .85rem; padding: .4rem .7rem; border-radius: .6rem;
-      border: 1px solid #d1d5db; background: #ffffffcc; backdrop-filter: blur(6px);
-      cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    .menu {
+      position: fixed; left: 1rem; z-index: 1001; width: 240px;
+      border: 1px solid #d1d5db; border-radius: 12px; padding: .6rem;
+      background: #ffffff; box-shadow: 0 10px 30px rgba(0,0,0,.15);
+      display: none;
     }
-    .reload-btn:disabled { opacity: .6; cursor: not-allowed; }
+    .menu.open { display: block; }
+    .menu .item { display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.5rem; }
+    .menu hr { margin:.4rem 0; }
+    .menu-btn, .toggle-theme {
+      font-size: .9rem; padding: .35rem .6rem; border-radius: .5rem;
+      border: 1px solid #d1d5db; background: #f9fafb; cursor: pointer;
+    }
+
+    /* Dark theme tweaks */
+    html[data-theme="dark"] .hamburger,
+    html[data-theme="dark"] .menu { background: #111827cc; border-color:#374151; color:#e5e7eb; }
+    html[data-theme="dark"] .menu-btn, 
+    html[data-theme="dark"] .toggle-theme { background:#1f2937; border-color:#374151; color:#e5e7eb; }
+    html[data-theme="dark"] .transcript { border-color:#374151; background:#111827; }
+    html[data-theme="dark"] .copy-btn { background:#1f2937; border-color:#374151; color:#e5e7eb; }
   </style>
 </head>
 
 <body>
   <main class="container">
-    <button id="force-reload" class="reload-btn" title="Clear caches & service worker, then reload">Force Reload</button>
+    <!-- Hamburger -->
+    <button id="hamburger" class="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z"></path>
+      </svg>
+    </button>
+
+    <!-- Menu -->
+    <div id="menu" class="menu" role="menu" aria-labelledby="hamburger">
+      <div class="item">
+        <span>Theme</span>
+        <button id="toggle-theme" class="toggle-theme" role="menuitem">Switch to Dark</button>
+      </div>
+      <hr />
+      <div class="item">
+        <span>Cache & SW</span>
+        <button id="force-reload" class="menu-btn" role="menuitem">Force reload</button>
+      </div>
+    </div>
 
     <h1>NeuroToolkit</h1>
 
@@ -76,37 +139,76 @@
 
     <div id="voice-status" class="voice-status">Idle</div>
 
+    <!-- Timer row -->
+    <div id="rec-row" class="rec-row" aria-live="polite">
+      <span id="timer" class="timer"><span class="dot" aria-hidden="true"></span><span id="timer-text">00:00</span></span>
+    </div>
+
     <div class="spinner-wrap" aria-live="polite">
       <div id="spinner" class="spinner" aria-hidden="true"></div>
       <span id="spinner-text" class="muted"></span>
     </div>
 
     <div class="section">
-      <div class="row">
-        <h2>Transcript</h2>
-        <button id="copy-btn" class="copy-btn" title="Copy to clipboard">Copy</button>
+      <div class="row"><h2>Transcript</h2></div>
+      <div id="transcript" class="transcript" aria-live="polite"></div>
+      <div style="margin-top:.6rem;">
+        <button id="copy-btn" class="copy-btn" title="Copy transcript">Copy</button>
       </div>
-      <textarea id="transcript" placeholder="Your transcript will appear here..." readonly></textarea>
       <p class="muted">Tip: First run downloads the model for offline reuse. Subsequent runs are faster.</p>
     </div>
 
     <hr style="margin: 2rem 0;" />
-
     <p>Status: <span id="net-status">checking…</span></p>
   </main>
 
   <script type="module">
-    // --- Online/offline indicator ---
+    // Theme (default light)
+    const root = document.documentElement;
+    const savedTheme = localStorage.getItem('theme');
+    root.setAttribute('data-theme', (savedTheme === 'dark' || savedTheme === 'light') ? savedTheme : 'light');
+    const toggleThemeBtn = document.getElementById('toggle-theme');
+    function updateThemeButton() {
+      const isDark = root.getAttribute('data-theme') === 'dark';
+      toggleThemeBtn.textContent = isDark ? 'Switch to Light' : 'Switch to Dark';
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#111827' : '#0f766e');
+    }
+    updateThemeButton();
+    toggleThemeBtn.addEventListener('click', () => {
+      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateThemeButton();
+    });
+
+    // Hamburger menu
+    const hamburger = document.getElementById('hamburger');
+    const menu = document.getElementById('menu');
+    function closeMenuOnOutside(e) {
+      if (!menu.contains(e.target) && e.target !== hamburger) {
+        menu.classList.remove('open');
+        hamburger.setAttribute('aria-expanded', 'false');
+        document.removeEventListener('click', closeMenuOnOutside);
+      }
+    }
+    hamburger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = menu.classList.toggle('open');
+      hamburger.setAttribute('aria-expanded', String(open));
+      if (open) document.addEventListener('click', closeMenuOnOutside);
+    });
+
+    // Online/offline
     const netEl = document.getElementById('net-status');
     function updateNet() { netEl.textContent = navigator.onLine ? 'online' : 'offline'; }
     addEventListener('online', updateNet); addEventListener('offline', updateNet); updateNet();
 
-    // --- Register SW (PWA) ---
+    // Register SW
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=6');
+      navigator.serviceWorker.register('./sw.js?v=8');
     }
 
-    // --- UI elements ---
+    // UI refs
     const btn = document.getElementById('voice-btn');
     const btnLabel = document.getElementById('voice-btn-label');
     const statusEl = document.getElementById('voice-status');
@@ -115,12 +217,17 @@
     const spinner = document.getElementById('spinner');
     const spinnerText = document.getElementById('spinner-text');
     const forceReloadBtn = document.getElementById('force-reload');
+    const recRow = document.getElementById('rec-row');
+    const timerEl = document.getElementById('timer');
+    const timerTextEl = document.getElementById('timer-text');
 
     let isActive = false;
     let mediaRecorder;
     let recordedChunks = [];
     let audioStream;
-    let asrPipeline = null; // Whisper pipeline (lazy-loaded)
+    let asrPipeline = null; // lazy-loaded
+    let timerInterval = null;
+    let startMs = 0;
 
     function setStatus(text) { statusEl.textContent = text; }
     function showSpinner(text='') {
@@ -134,7 +241,28 @@
       spinnerText.textContent = '';
     }
 
-    // Load Whisper tiny in-browser on first use
+    // Timer helpers
+    function startTimer() {
+      startMs = Date.now();
+      timerEl.parentElement.classList.add('recording');
+      updateTimer(); // immediate tick
+      timerInterval = setInterval(updateTimer, 1000);
+    }
+    function stopTimer() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerTextEl.textContent = '00:00';
+      timerEl.parentElement.classList.remove('recording');
+    }
+    function updateTimer() {
+      const elapsed = Math.max(0, Date.now() - startMs);
+      const totalSec = Math.floor(elapsed / 1000);
+      const mm = String(Math.floor(totalSec / 60)).padStart(2, '0');
+      const ss = String(totalSec % 60).padStart(2, '0');
+      timerTextEl.textContent = `${mm}:${ss}`;
+    }
+
+    // Whisper loader
     async function ensureASR() {
       if (asrPipeline) return asrPipeline;
       showSpinner('Loading Whisper model… (first time may take a minute)');
@@ -146,11 +274,11 @@
       return asrPipeline;
     }
 
-    // Start recording via MediaRecorder (WebM/Opus)
+    // Recording control
     async function startRecording() {
       try {
         audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch (e) {
+      } catch {
         setStatus('Microphone permission denied');
         return;
       }
@@ -163,44 +291,48 @@
       btn.setAttribute('aria-pressed', 'true');
       btnLabel.textContent = 'Stop Voice Recognition';
       setStatus('Voice recognition active');
+
+      startTimer();
     }
 
     async function stopRecording() {
       if (!mediaRecorder) return;
-      await new Promise(res => {
-        mediaRecorder.onstop = () => res();
-        mediaRecorder.stop();
-      });
+      await new Promise(res => { mediaRecorder.onstop = () => res(); mediaRecorder.stop(); });
       if (audioStream) audioStream.getTracks().forEach(t => t.stop());
 
       btn.classList.remove('active');
       btn.setAttribute('aria-pressed', 'false');
       btnLabel.textContent = 'Start Voice Recognition';
 
+      stopTimer();
+
       showSpinner('Processing audio…');
       setStatus('Processing audio…');
 
-      const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-      const audioData = await blob.arrayBuffer();
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const decoded = await ctx.decodeAudioData(audioData);
-      const mono = toMono(decoded);
-      const pcm16k = resampleFloat32(mono, decoded.sampleRate, 16000);
+      try {
+        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+        const audioData = await blob.arrayBuffer();
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const decoded = await ctx.decodeAudioData(audioData);
+        const mono = toMono(decoded);
+        const pcm16k = resampleFloat32(mono, decoded.sampleRate, 16000);
 
-      // Run Whisper
-      const asr = await ensureASR();
-      const result = await asr(pcm16k, {
-        chunk_length_s: 30,
-        stride_length_s: 5,
-        return_timestamps: false
-      });
+        showSpinner('Transcribing…');
+        const asr = await ensureASR();
+        const result = await asr(pcm16k, { chunk_length_s: 30, stride_length_s: 5, return_timestamps: false });
 
-      transcriptEl.value = (result?.text || '').trim();
-      hideSpinner();
-      setStatus('Idle');
+        const text = (result?.text || '').trim();
+        renderTranscript(text);
+      } catch (err) {
+        console.error(err);
+        renderTranscript('[Transcription failed]');
+      } finally {
+        hideSpinner();
+        setStatus('Idle');
+      }
     }
 
-    // Convert multi-channel to mono Float32Array
+    // Audio helpers
     function toMono(audioBuffer) {
       if (audioBuffer.numberOfChannels === 1) return audioBuffer.getChannelData(0);
       const ch0 = audioBuffer.getChannelData(0);
@@ -209,8 +341,6 @@
       for (let i = 0; i < out.length; i++) out[i] = (ch0[i] + ch1[i]) / 2;
       return out;
     }
-
-    // Linear resample Float32 to target sample rate
     function resampleFloat32(float32, originalRate, targetRate) {
       if (originalRate === targetRate) return float32;
       const ratio = originalRate / targetRate;
@@ -226,44 +356,54 @@
       return out;
     }
 
+    // Paragraph rendering
+    const transcriptDiv = document.getElementById('transcript');
+    function renderTranscript(text) {
+      transcriptDiv.innerHTML = '';
+      if (!text) return;
+      const sentences = text.replace(/\s+/g, ' ').split(/(?<=[.!?])\s+/).filter(Boolean);
+      const groupSize = 3;
+      for (let i = 0; i < sentences.length; i += groupSize) {
+        const p = document.createElement('p');
+        p.textContent = sentences.slice(i, i + groupSize).join(' ');
+        transcriptDiv.appendChild(p);
+      }
+    }
+
     function toggleVoice() {
       isActive = !isActive;
       if (isActive) startRecording().catch(() => { isActive = false; });
-      else stopRecording().catch(() => { hideSpinner(); setStatus('Idle'); });
+      else stopRecording().catch(() => { hideSpinner(); setStatus('Idle'); stopTimer(); });
     }
+    document.getElementById('voice-btn').addEventListener('click', toggleVoice);
 
-    btn.addEventListener('click', toggleVoice);
-
-    copyBtn.addEventListener('click', async () => {
+    // Copy transcript
+    document.getElementById('copy-btn').addEventListener('click', async () => {
+      const text = Array.from(transcriptDiv.querySelectorAll('p')).map(p => p.textContent).join('\n\n');
       try {
-        await navigator.clipboard.writeText(transcriptEl.value || '');
-        copyBtn.textContent = 'Copied';
-        setTimeout(() => (copyBtn.textContent = 'Copy'), 1000);
+        await navigator.clipboard.writeText(text);
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = 'Copied';
+        setTimeout(() => (btn.textContent = 'Copy'), 1000);
       } catch {
-        transcriptEl.select();
-        document.execCommand('copy');
-        copyBtn.textContent = 'Copied';
-        setTimeout(() => (copyBtn.textContent = 'Copy'), 1000);
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
       }
     });
 
     // Force Reload: clear SW + caches, then reload with cache-buster
-    forceReloadBtn.addEventListener('click', async () => {
-      forceReloadBtn.disabled = true;
-      forceReloadBtn.textContent = 'Clearing…';
+    document.getElementById('force-reload').addEventListener('click', async () => {
       try {
-        // Unregister all service workers
         if ('serviceWorker' in navigator) {
           const regs = await navigator.serviceWorker.getRegistrations();
           await Promise.all(regs.map(r => r.unregister()));
         }
-        // Delete all caches
         if ('caches' in window) {
           const names = await caches.keys();
           await Promise.all(names.map(n => caches.delete(n)));
         }
       } catch {}
-      // Reload with a cache-busting query param
       const url = new URL(window.location.href);
       url.searchParams.set('force', Date.now());
       window.location.replace(url.toString());
