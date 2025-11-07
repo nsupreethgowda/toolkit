@@ -1,4 +1,4 @@
-// Theme
+// Theme helpers
 export function setThemeFromStorage(root) {
   const saved = localStorage.getItem('theme');
   root.setAttribute('data-theme', (saved === 'dark' || saved === 'light') ? saved : 'light');
@@ -37,7 +37,7 @@ export function hideSpinner() {
   st.textContent = '';
 }
 
-// Transcript as paragraphs (3 sentences / paragraph)
+// Transcript as paragraphs (3 sentences/paragraph)
 export function renderTranscript(text) {
   const target = document.getElementById('transcript');
   target.innerHTML = '';
