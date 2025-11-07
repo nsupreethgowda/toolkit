@@ -1,5 +1,5 @@
 // sw.js
-const CACHE = 'app-cache-v3';
+const CACHE = 'app-cache-v10';
 const OFFLINE_URLS = [
   '/', '/index.html', '/manifest.webmanifest',
   'https://unpkg.com/@picocss/pico@2/css/pico.min.css'
