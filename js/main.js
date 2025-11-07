@@ -5,7 +5,7 @@ import {  setStatus, showSpinner, hideSpinner,  appendTranscript, getTranscriptP
 
 // (If you still need a full replace somewhere, you can also import renderTranscript once.)
 
-registerSW('./sw.js?v=13'); // bump this when you ship major changes
+registerSW('./sw.js?v=14'); // bump this when you ship major changes
 attachForceReload();
 initMenu();
 
@@ -63,8 +63,9 @@ btn.addEventListener('click', async () => {
     try {
       showSpinner('Transcribing…');
       if (!asr) asr = await import('./asr.js');
-      const text = await asr.transcribe(pcm16k);
-      appendTranscript(text);
+const text = await asr.transcribe(pcm16k);
+appendTranscript(text); // accumulate with 10k cap
+
     } catch (e) {
       console.error(e);
       renderTranscript('[Transcription failed]');
@@ -77,17 +78,19 @@ btn.addEventListener('click', async () => {
 
 // Copy transcript
 document.getElementById('copy-btn').addEventListener('click', async () => {
-  const text = getTranscriptPlainText(); // already normalized with paragraph breaks
+  const text = getTranscriptPlainText();
   try {
     await navigator.clipboard.writeText(text);
     const c = document.getElementById('copy-btn');
     c.textContent = 'Copied';
     setTimeout(() => (c.textContent = 'Copy'), 1000);
   } catch {
-    const ta = document.createElement('textarea'); ta.value = text;
-    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
   }
 });
+
 
 // Filter out benign Cloudflare hub.js JSON parse noise
 window.addEventListener('error', (e) => {
