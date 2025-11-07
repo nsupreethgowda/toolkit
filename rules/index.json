@@ -1,0 +1,16 @@
+[
+  {
+    "id": "general-soap",
+    "label": "General SOAP",
+    "description": "Generic clinical cleanups and SOAP sectionization.",
+    "tags": ["general", "formatting", "sectionize", "history", "exam", "plan"],
+    "path": "general-soap.json"
+  },
+  {
+    "id": "neurology-stroke",
+    "label": "Neurology — Stroke",
+    "description": "Stroke terminology, imaging/NIHSS helpers, stroke note sections.",
+    "tags": ["neurology", "stroke", "history", "exam", "imaging", "plan", "sectionize"],
+    "path": "neurology-stroke.json"
+  }
+]
