@@ -5,7 +5,7 @@ import {  setStatus, showSpinner, hideSpinner,  appendTranscript, getTranscriptP
 
 // (If you still need a full replace somewhere, you can also import renderTranscript once.)
 
-registerSW('./sw.js?v=14'); // bump this when you ship major changes
+registerSW('./sw.js?v=15'); // bump this when you ship major changes
 attachForceReload();
 initMenu();
 
