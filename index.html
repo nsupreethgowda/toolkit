@@ -104,5 +104,9 @@
 
   <!-- Minimal boot; heavy parts are lazy-loaded inside -->
 </body>
-  <script type="module" src="js/main.js"></script>
+<script type="module">
+  console.log('[modules] inline module executed');
+</script>
+
+<script type="module" src="js/main.js"></script>
 </html>
