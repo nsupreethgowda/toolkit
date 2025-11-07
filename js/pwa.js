@@ -1,3 +1,5 @@
+registerSW('./sw.js?v=9');
+
 export function registerSW(url) {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register(url);
