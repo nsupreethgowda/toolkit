@@ -7,83 +7,130 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f766e">
   <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2/css/pico.min.css">
+  <style>
+    .voice-wrap { display:flex; align-items:center; gap:.75rem; }
+    .voice-btn {
+      display:inline-flex; align-items:center; gap:.5rem;
+      border:none; border-radius:9999px; padding:.65rem 1rem;
+      font-weight:600; cursor:pointer; color:#fff;
+      background:#16a34a; /* green */
+      transition:background .15s ease-in-out, transform .05s ease-in-out;
+    }
+    .voice-btn:active { transform: translateY(1px); }
+    .voice-btn.active { background:#dc2626; } /* red */
+    .voice-status { font-weight:600; }
+    .voice-hint { color:#6b7280; font-size:.9rem; }
+    .sr-only {
+      position:absolute !important; height:1px; width:1px; overflow:hidden;
+      clip:rect(1px, 1px, 1px, 1px); white-space:nowrap; border:0; padding:0; margin:-1px;
+    }
+    .icon { width:1.1rem; height:1.1rem; }
+  </style>
 </head>
 <body>
   <main class="container">
-    <h1>My PWA (Offline-ready)</h1>
-    <p>Status: <span id="status">checking…</span></p>
+    <h1>My PWA</h1>
 
-    <form id="note-form">
-      <input id="note" placeholder="Write a note…" aria-label="Note" />
-      <button type="submit">Save</button>
-    </form>
+    <!-- Voice recognition control -->
+    <section aria-labelledby="voice-title">
+      <h2 id="voice-title">Voice recognition</h2>
+      <div class="voice-wrap">
+        <button id="voice-btn" class="voice-btn" aria-pressed="false" aria-describedby="voice-hint">
+          <!-- mic icon (inline SVG) -->
+          <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.93V21h2v-3.07A7 7 0 0 0 19 11h-2z"/>
+          </svg>
+          <span id="voice-btn-label">Start voice recognition</span>
+        </button>
+        <span id="voice-status" class="voice-status">Idle</span>
+      </div>
+      <p id="voice-hint" class="voice-hint">
+        Click the button to toggle voice recognition. The button turns green (off) or red (on).
+      </p>
+      <p class="sr-only" id="voice-live" aria-live="polite"></p>
+    </section>
 
-    <ul id="notes"></ul>
+    <hr />
+
+    <!-- (Optional) Your existing content can stay below -->
+    <p>Status: <span id="net-status">checking…</span></p>
   </main>
 
   <script type="module">
-    // Register service worker (installability + offline)
+    // --- Online/offline indicator (optional; keeps your original behavior) ---
+    const netEl = document.getElementById('net-status');
+    function updateNet() { netEl.textContent = navigator.onLine ? 'online' : 'offline'; }
+    window.addEventListener('online', updateNet);
+    window.addEventListener('offline', updateNet);
+    updateNet();
+
+    // --- Register SW (PWA) ---
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js');
     }
 
-    // Simple online/offline UI
-    const statusEl = document.getElementById('status');
-    function updateStatus() {
-      statusEl.textContent = navigator.onLine ? 'online' : 'offline';
-    }
-    window.addEventListener('online',  updateStatus);
-    window.addEventListener('offline', updateStatus);
-    updateStatus();
+    // --- Voice button logic ---
+    const btn = document.getElementById('voice-btn');
+    const btnLabel = document.getElementById('voice-btn-label');
+    const statusEl = document.getElementById('voice-status');
+    const liveEl = document.getElementById('voice-live');
 
-    // Tiny IndexedDB wrapper with idb
-    import { openDB } from 'https://unpkg.com/idb?module';
-    const db = await openDB('pwa-notes', 1, {
-      upgrade(db) { db.createObjectStore('notes', { keyPath: 'id', autoIncrement: true }); }
-    });
-
-    async function listNotes() {
-      const tx = db.transaction('notes');
-      const store = tx.objectStore('notes');
-      const all = await store.getAll();
-      const ul = document.getElementById('notes');
-      ul.innerHTML = '';
-      all.sort((a,b)=>b.id-a.id).forEach(n => {
-        const li = document.createElement('li');
-        li.textContent = n.text + (n.pending ? ' (pending sync)' : '');
-        ul.appendChild(li);
-      });
+    // Speech APIs (progressive enhancement)
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+    if (recognition) {
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = navigator.language || 'en-US';
+      recognition.onstart = () => setStatus('Voice recognition active');
+      recognition.onend = () => {
+        // If user turned it off, don't auto-restart; otherwise browsers sometimes end on their own.
+        if (isActive) return; // do nothing (we stopped it)
+      };
+      recognition.onerror = () => { /* ignore for now; UI still toggles */ };
+      recognition.onresult = (event) => {
+        // You can read transcripts here if you want:
+        // const last = event.results[event.results.length - 1][0].transcript;
+        // console.log('Heard:', last);
+      };
     }
 
-    document.getElementById('note-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const text = document.getElementById('note').value.trim();
-      if (!text) return;
+    let isActive = false;
 
-      // Save locally immediately (works offline)
-      await db.put('notes', { text, createdAt: Date.now(), pending: !navigator.onLine });
+    function speak(text) {
+      if (!('speechSynthesis' in window)) return;
+      try {
+        const u = new SpeechSynthesisUtterance(text);
+        window.speechSynthesis.speak(u);
+      } catch {}
+    }
 
-      // Try to sync if online; else mark pending
-      if (navigator.onLine) {
-        try {
-          await fetch('/api/notes', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ text }) });
-          // If success, clear pending flag by re-saving
-          const last = (await db.getAll('notes')).pop();
-          last.pending = false; await db.put('notes', last);
-        } catch { /* keep pending */ }
+    function setStatus(text) {
+      statusEl.textContent = text;
+      liveEl.textContent = text; // for screen readers
+    }
+
+    function toggleVoice() {
+      isActive = !isActive;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+      if (isActive) {
+        btnLabel.textContent = 'Stop voice recognition';
+        setStatus('Voice recognition active');
+        speak('Voice recognition active');
+        if (recognition) {
+          try { recognition.start(); } catch {}
+        }
       } else {
-        // Ask SW to queue a background sync if available
-        if ('serviceWorker' in navigator && 'SyncManager' in window) {
-          const reg = await navigator.serviceWorker.ready;
-          try { await reg.sync.register('sync-notes'); } catch {}
+        btnLabel.textContent = 'Start voice recognition';
+        setStatus('Idle');
+        if (recognition) {
+          try { recognition.stop(); } catch {}
         }
       }
+    }
 
-      document.getElementById('note').value = '';
-      listNotes();
-    });
-
-    listNotes();
+    btn.addEventListener('click', toggleVoice);
   </script>
 </body>
 </html>
