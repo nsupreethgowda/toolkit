@@ -5,6 +5,10 @@
 - let audioStream = null;
 + let audioStream = null;
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js?v=10');
+}
+
  // on Start (inside the click handler)
 - if (!media) media = await import('./audio.js');
 - recordedChunks = [];
