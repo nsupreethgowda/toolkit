@@ -91,6 +91,37 @@ document.getElementById('copy-btn').addEventListener('click', async () => {
   }
 });
 
+// Reformat button
+document.getElementById('reformat-btn').addEventListener('click', async () => {
+  const { getTranscriptPlainText } = await import('./ui.js');
+  const { reformatText } = await import('./format.js');
+  const input = getTranscriptPlainText();
+  const out = reformatText(input);
+  // Render safely
+  const box = document.getElementById('formatted');
+  box.innerHTML = '';
+  out.split(/\n\n/).forEach(p => {
+    const el = document.createElement('p');
+    el.textContent = p;
+    box.appendChild(el);
+  });
+});
+
+// Copy formatted
+document.getElementById('copy-formatted-btn').addEventListener('click', async () => {
+  const html = document.getElementById('formatted');
+  const text = Array.from(html.querySelectorAll('p')).map(p => p.textContent).join('\n\n');
+  try {
+    await navigator.clipboard.writeText(text);
+    const b = document.getElementById('copy-formatted-btn');
+    b.textContent = 'Copied';
+    setTimeout(() => (b.textContent = 'Copy'), 1000);
+  } catch {
+    const ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+  }
+});
+
 
 // Filter out benign Cloudflare hub.js JSON parse noise
 window.addEventListener('error', (e) => {
