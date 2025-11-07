@@ -7,59 +7,35 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f766e">
   <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2/css/pico.min.css">
-
   <style>
-    body {
-      text-align: center;
-      margin-top: 10vh;
-    }
-
-    h1 {
-      margin-bottom: 2rem;
-      font-size: 2.5rem;
-      color: #0f766e;
-    }
+    body { text-align: center; margin-top: 8vh; }
+    h1 { margin-bottom: 2rem; font-size: 2.5rem; color: #0f766e; }
 
     .voice-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: none;
-      border-radius: 9999px;
-      padding: 1.25rem 2rem;
-      font-weight: 600;
-      font-size: 1.1rem;
-      cursor: pointer;
-      color: #fff;
-      background: #16a34a; /* green */
-      transition: background 0.2s ease, transform 0.1s ease;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      display: inline-flex; align-items: center; justify-content: center;
+      border: none; border-radius: 9999px; padding: 1.25rem 2rem;
+      font-weight: 600; font-size: 1.1rem; cursor: pointer; color: #fff;
+      background: #16a34a; transition: background .2s ease, transform .1s ease;
+      box-shadow: 0 4px 10px rgba(0,0,0,.2);
     }
+    .voice-btn.active { background:#dc2626; }
+    .voice-btn:active { transform: translateY(1px); }
+    .icon { width: 2rem; height: 2rem; margin-right: .75rem; }
 
-    .voice-btn:active {
-      transform: translateY(1px);
-    }
+    .voice-status { margin-top: 1rem; font-size: 1.1rem; font-weight: 600; color: #374151; }
 
-    .voice-btn.active {
-      background: #dc2626; /* red */
+    .section { max-width: 800px; margin: 2rem auto; text-align: left; }
+    .row { display:flex; align-items:center; justify-content:space-between; gap:.75rem; }
+    .row h2 { margin: 0; font-size: 1.1rem; }
+    .copy-btn {
+      font-size: .85rem; padding: .35rem .6rem; border-radius: .5rem;
+      border: 1px solid #d1d5db; background: #f9fafb; cursor: pointer;
     }
-
-    .icon {
-      width: 2rem;
-      height: 2rem;
-      margin-right: 0.75rem;
+    textarea {
+      width: 100%; min-height: 180px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .95rem; padding: .75rem; border-radius: .5rem;
     }
-
-    .voice-status {
-      margin-top: 1.5rem;
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: #374151;
-    }
-
-    #net-status {
-      font-weight: 500;
-    }
+    .muted { color:#6b7280; font-size:.9rem; }
   </style>
 </head>
 
@@ -76,7 +52,16 @@
 
     <div id="voice-status" class="voice-status">Idle</div>
 
-    <hr style="margin: 3rem 0;" />
+    <div class="section">
+      <div class="row">
+        <h2>Transcript</h2>
+        <button id="copy-btn" class="copy-btn" title="Copy to clipboard">Copy</button>
+      </div>
+      <textarea id="transcript" placeholder="Your transcript will appear here..." readonly></textarea>
+      <p class="muted">Tip: First run downloads the model for offline reuse. Subsequent runs are fast.</p>
+    </div>
+
+    <hr style="margin: 2rem 0;" />
 
     <p>Status: <span id="net-status">checking…</span></p>
   </main>
@@ -85,60 +70,138 @@
     // --- Online/offline indicator ---
     const netEl = document.getElementById('net-status');
     function updateNet() { netEl.textContent = navigator.onLine ? 'online' : 'offline'; }
-    window.addEventListener('online', updateNet);
-    window.addEventListener('offline', updateNet);
-    updateNet();
+    addEventListener('online', updateNet); addEventListener('offline', updateNet); updateNet();
 
     // --- Register SW (PWA) ---
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=4');
+      navigator.serviceWorker.register('./sw.js?v=5');
     }
 
-    // --- Voice recognition logic ---
+    // --- UI elements ---
     const btn = document.getElementById('voice-btn');
     const btnLabel = document.getElementById('voice-btn-label');
     const statusEl = document.getElementById('voice-status');
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = SpeechRecognition ? new SpeechRecognition() : null;
-
-    if (recognition) {
-      recognition.continuous = true;
-      recognition.interimResults = false;
-      recognition.lang = navigator.language || 'en-US';
-      recognition.onstart = () => setStatus('Voice recognition active');
-      recognition.onend = () => {
-        if (!isActive) setStatus('Idle');
-      };
-      recognition.onerror = () => {};
-    }
+    const transcriptEl = document.getElementById('transcript');
+    const copyBtn = document.getElementById('copy-btn');
 
     let isActive = false;
+    let mediaRecorder;
+    let recordedChunks = [];
+    let audioStream;
+    let asrPipeline = null; // Whisper pipeline (loaded lazily)
 
-    function setStatus(text) {
-      statusEl.textContent = text;
+    function setStatus(text) { statusEl.textContent = text; }
+
+    // Load Whisper tiny in-browser on first use
+    async function ensureASR() {
+      if (asrPipeline) return asrPipeline;
+      setStatus('Loading Whisper model… (first time may take a minute)');
+      const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers/dist/transformers.min.js');
+      // tiny.en is smallest + fast; change model id if you need multilingual (Xenova/whisper-tiny)
+      asrPipeline = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en', { quantized: true });
+      return asrPipeline;
+    }
+
+    // Start recording via MediaRecorder (WebM/Opus)
+    async function startRecording() {
+      try {
+        audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e) {
+        setStatus('Microphone permission denied');
+        return;
+      }
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
+      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+      mediaRecorder.start();
+
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      btnLabel.textContent = 'Stop Voice Recognition';
+      setStatus('Voice recognition active');
+    }
+
+    async function stopRecording() {
+      if (!mediaRecorder) return;
+      await new Promise(res => {
+        mediaRecorder.onstop = () => res();
+        mediaRecorder.stop();
+      });
+      // Stop tracks
+      if (audioStream) audioStream.getTracks().forEach(t => t.stop());
+      btn.classList.remove('active');
+      btn.setAttribute('aria-pressed', 'false');
+      btnLabel.textContent = 'Start Voice Recognition';
+      setStatus('Processing audio…');
+
+      const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+      // Decode -> resample to 16k mono -> Float32Array for Whisper
+      const audioData = await blob.arrayBuffer();
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const decoded = await ctx.decodeAudioData(audioData);
+      const mono = toMono(decoded);
+      const pcm16k = resampleFloat32(mono, decoded.sampleRate, 16000);
+
+      // Run Whisper
+      const asr = await ensureASR();
+      const result = await asr(pcm16k, {
+        chunk_length_s: 30,
+        stride_length_s: 5,
+        return_timestamps: false
+      });
+
+      transcriptEl.value = (result?.text || '').trim();
+      setStatus('Idle');
+    }
+
+    // Convert multi-channel to mono Float32Array
+    function toMono(audioBuffer) {
+      if (audioBuffer.numberOfChannels === 1) return audioBuffer.getChannelData(0);
+      const ch0 = audioBuffer.getChannelData(0);
+      const ch1 = audioBuffer.getChannelData(1);
+      const out = new Float32Array(audioBuffer.length);
+      for (let i = 0; i < out.length; i++) out[i] = (ch0[i] + ch1[i]) / 2;
+      return out;
+    }
+
+    // Linear resample Float32 to target sample rate
+    function resampleFloat32(float32, originalRate, targetRate) {
+      if (originalRate === targetRate) return float32;
+      const ratio = originalRate / targetRate;
+      const newLen = Math.round(float32.length / ratio);
+      const out = new Float32Array(newLen);
+      let pos = 0;
+      for (let i = 0; i < newLen; i++) {
+        const idx = i * ratio;
+        const i0 = Math.floor(idx);
+        const i1 = Math.min(i0 + 1, float32.length - 1);
+        const frac = idx - i0;
+        out[i] = float32[i0] * (1 - frac) + float32[i1] * frac;
+      }
+      return out;
     }
 
     function toggleVoice() {
       isActive = !isActive;
-      btn.classList.toggle('active', isActive);
-      btn.setAttribute('aria-pressed', String(isActive));
-      if (isActive) {
-        btnLabel.textContent = 'Stop Voice Recognition';
-        setStatus('Voice recognition active');
-        if (recognition) {
-          try { recognition.start(); } catch {}
-        }
-      } else {
-        btnLabel.textContent = 'Start Voice Recognition';
-        setStatus('Idle');
-        if (recognition) {
-          try { recognition.stop(); } catch {}
-        }
-      }
+      if (isActive) startRecording().catch(() => { isActive = false; });
+      else stopRecording().catch(() => { setStatus('Idle'); });
     }
 
     btn.addEventListener('click', toggleVoice);
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(transcriptEl.value || '');
+        copyBtn.textContent = 'Copied';
+        setTimeout(() => (copyBtn.textContent = 'Copy'), 1000);
+      } catch {
+        // fallback: select + copy
+        transcriptEl.select();
+        document.execCommand('copy');
+        copyBtn.textContent = 'Copied';
+        setTimeout(() => (copyBtn.textContent = 'Copy'), 1000);
+      }
+    });
   </script>
 </body>
 </html>
