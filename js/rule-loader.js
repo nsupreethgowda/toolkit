@@ -45,3 +45,33 @@ export function mergePacks(packs) {
   }
   return merged;
 }
+
+// Add to js/rule-loader.js
+export async function loadEnabledParsers() {
+  const all = await getRegistry();
+  const enabled = new Set(getEnabledPackIds());
+  const chosen = all.filter(p => p.kind === 'parser' && enabled.has(p.id));
+  const mods = [];
+  for (const p of chosen) {
+    try {
+      const mod = await import(`../rules/${p.module}`); // ESM import
+      mods.push({ id: p.id, label: p.label, ...mod });
+    } catch (e) {
+      console.warn('Parser load failed', p, e);
+    }
+  }
+  return mods;
+}
+
+export async function loadEnabledPacks() {
+  const all = await getRegistry();
+  const enabled = new Set(getEnabledPackIds());
+  const chosen = all.filter(p => (!p.kind || p.kind === 'pack') && enabled.has(p.id));
+  const packs = [];
+  for (const p of chosen) {
+    const res = await fetch(`./rules/${p.path}`, { cache: 'no-cache' });
+    if (!res.ok) continue;
+    packs.push(await res.json());
+  }
+  return mergePacks(packs);
+}
