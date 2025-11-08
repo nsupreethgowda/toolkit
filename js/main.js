@@ -1,13 +1,8 @@
 import { registerSW, attachForceReload } from './pwa.js';
-registerSW('./sw.js?v=20');  // ⬅️ bump this when SW changes
-attachForceReload();
 import { initMenu } from './menu.js';
-// OK:
 import {  setStatus, showSpinner, hideSpinner,  appendTranscript, getTranscriptPlainText, timer} from './ui.js';
 
-// (If you still need a full replace somewhere, you can also import renderTranscript once.)
-
-registerSW('./sw.js?v=18'); // bump this when you ship major changes
+registerSW('./sw.js?v=20');  // ⬅️ bump this when SW changes
 attachForceReload();
 initMenu();
 
