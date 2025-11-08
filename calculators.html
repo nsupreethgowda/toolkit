@@ -8,10 +8,10 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f766e">
   <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2/css/pico.min.css">
-  <link rel="stylesheet" href="css/themes.css">
+  <link rel="stylesheet" href="./css/themes.css">
   <style>
     main { max-width: 960px; margin: 4vh auto; padding: 1rem; }
-    .calc-card { border:1px solid var(--border); border-radius:12px; padding:1rem; background:var(--card); margin-bottom:1rem; }
+    .calc-card { border:1px solid var(--border); border-radius:12px; padding:1rem; background:var(--card); margin-top:1rem; }
     .grid { display:grid; grid-template-columns: 1fr; gap:.75rem; }
     @media (min-width: 900px) { .grid { grid-template-columns: 1fr 1fr; } }
     .row { display:flex; align-items:center; justify-content:space-between; gap:.75rem; }
@@ -21,9 +21,9 @@
 </head>
 <body>
   <main class="container">
-    <a href="index.html" class="back">← Back to app</a>
+    <a href="./index.html" class="back">← Back to app</a>
     <h1>Manual Calculators</h1>
-    <p class="muted">Select a calculator, pick options, and export formatted text (and JSON when available). Calculators come from your rule/parser modules.</p>
+    <p class="muted">Pick a calculator, select options, and export formatted text / JSON.</p>
 
     <div id="calc-list"></div>
 
@@ -36,6 +36,6 @@
     <div id="output" class="outbox" style="margin-top:.75rem;"></div>
   </main>
 
-  <script type="module" src="js/calculators.js"></script>
+  <script type="module" src="./js/calculators.js"></script>
 </body>
 </html>
