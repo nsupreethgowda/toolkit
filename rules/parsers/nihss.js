@@ -131,3 +131,86 @@ function scoreLanguage(t, flags){ return { score: /mild\s*aphasia/i.test(t) ? 1 
 function scoreDysarthria(t, flags, UN){ if (flags?.intubated) { UN.push('10-Dysarthria (Intubated)'); return { score:'UN', note:'Intubated' }; } return { score: /mild\s*dysarthria/i.test(t) ? 1 : /severe\s*dysarthria/i.test(t) ? 2 : 0 }; }
 function scoreNeglect(t){ return { score: /inattention|neglect/i.test(t) ? (/profound|severe/i.test(t) ? 2 : 1) : 0 }; }
 function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+// Add to /rules/parsers/nihss.js
+
+/** Schema for manual calculator rendering */
+export function getNIHSSCalculatorSchema() {
+  // Minimal, you can expand text/options at will
+  return {
+    id: 'nihss',
+    title: 'NIH Stroke Scale (NIHSS)',
+    items: [
+      { code: '1a', label: 'Level of Consciousness', options: [
+        {label:'Alert', value:0}, {label:'Drowsy', value:1}, {label:'Stupor', value:2}, {label:'Coma', value:3}
+      ]},
+      { code: '1b', label: 'LOC Questions (Month/Age)', options: [
+        {label:'Both Correct', value:0}, {label:'One Correct', value:1}, {label:'Neither', value:2}
+      ]},
+      { code: '1c', label: 'LOC Commands (Open/Close Eyes & Hand)', options: [
+        {label:'Both Correct', value:0}, {label:'One Correct', value:1}, {label:'Neither', value:2}
+      ]},
+      { code: '2', label: 'Best Gaze', options: [
+        {label:'Normal', value:0}, {label:'Partial gaze palsy', value:1}, {label:'Forced deviation', value:2}
+      ]},
+      { code: '3', label: 'Visual Fields', options: [
+        {label:'No loss', value:0}, {label:'Partial hemianopia', value:1}, {label:'Complete hemianopia', value:2}, {label:'Bilateral/cortical blindness', value:3}
+      ]},
+      { code: '4', label: 'Facial Palsy', options: [
+        {label:'Normal', value:0}, {label:'Minor paresis', value:1}, {label:'Partial paralysis', value:2}, {label:'Complete paralysis', value:3}
+      ]},
+      { code: '5a', label: 'Motor — Left Arm', options: [
+        {label:'Normal', value:0}, {label:'Drift', value:1}, {label:'Some effort vs gravity', value:2}, {label:'No effort vs gravity', value:3}, {label:'No movement', value:4}, {label:'UN (amputation/joint fusion)', value:'UN'}
+      ]},
+      { code: '5b', label: 'Motor — Right Arm', options: [
+        {label:'Normal', value:0}, {label:'Drift', value:1}, {label:'Some effort vs gravity', value:2}, {label:'No effort vs gravity', value:3}, {label:'No movement', value:4}, {label:'UN (amputation/joint fusion)', value:'UN'}
+      ]},
+      { code: '6a', label: 'Motor — Left Leg', options: [
+        {label:'Normal', value:0}, {label:'Drift', value:1}, {label:'Some effort vs gravity', value:2}, {label:'No effort vs gravity', value:3}, {label:'No movement', value:4}, {label:'UN (amputation/joint fusion)', value:'UN'}
+      ]},
+      { code: '6b', label: 'Motor — Right Leg', options: [
+        {label:'Normal', value:0}, {label:'Drift', value:1}, {label:'Some effort vs gravity', value:2}, {label:'No effort vs gravity', value:3}, {label:'No movement', value:4}, {label:'UN (amputation/joint fusion)', value:'UN'}
+      ]},
+      { code: '7', label: 'Limb Ataxia', options: [
+        {label:'Absent', value:0}, {label:'One limb', value:1}, {label:'Two limbs', value:2}
+      ]},
+      { code: '8', label: 'Sensory', options: [
+        {label:'Normal', value:0}, {label:'Mild–Mod loss', value:1}, {label:'Severe–Total loss', value:2}
+      ]},
+      { code: '9', label: 'Best Language', options: [
+        {label:'No aphasia', value:0}, {label:'Mild–Mod aphasia', value:1}, {label:'Severe aphasia', value:2}, {label:'Mute/Global', value:3}
+      ]},
+      { code: '10', label: 'Dysarthria', options: [
+        {label:'Normal', value:0}, {label:'Mild–Mod', value:1}, {label:'Severe', value:2}, {label:'UN (Intubated)', value:'UN'}
+      ]},
+      { code: '11', label: 'Extinction/Inattention', options: [
+        {label:'None', value:0}, {label:'Mild', value:1}, {label:'Severe', value:2}
+      ]}
+    ]
+  };
+}
+
+/** Compute from selection map { code: value } → { total, lines[], un[] } */
+export function computeNIHSSFromSelections(selections) {
+  let total = 0; const un = []; const lines = [];
+  const schema = getNIHSSCalculatorSchema();
+  const byCode = Object.fromEntries(schema.items.map(it => [it.code, it]));
+
+  function push(code, label, val) {
+    const note = (val === 'UN') ? ' — UN' : '';
+    lines.push(`${code}-${label}: ${val}${note}`);
+  }
+
+  for (const it of schema.items) {
+    const val = selections[it.code];
+    if (val === 'UN') un.push(it.code);
+    if (typeof val === 'number') total += val;
+    const label = it.label;
+    push(it.code, label, val ?? 'UN');
+  }
+  lines.unshift('NIHSS Score =');
+  lines.push(`Total NIHSS = ${total}`);
+  if (un.length) lines.push(`UN Items: ${un.join(', ')}`);
+
+  return { total, lines, un };
+}
