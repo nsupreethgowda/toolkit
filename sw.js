@@ -1,12 +1,15 @@
 // Robust SW with explicit version to invalidate old caches
-const CACHE = 'app-cache-v16';
+// sw.js
+const CACHE = 'app-cache-v17';
 const OFFLINE_URLS = [
   '/', '/index.html', '/rules.html',
   '/css/themes.css',
-  '/js/main.js', '/js/ui.js', '/js/pwa.js', '/js/menu.js',
-  '/js/format.js', '/js/format-flags.js', '/js/rule-loader.js',
-  '/rules/index.json', '/rules/general-soap.json', '/rules/neurology-stroke.json'
+  '/js/main.js','/js/ui.js','/js/pwa.js','/js/menu.js',
+  '/js/format.js','/js/format-flags.js','/js/rule-loader.js',
+  '/rules/index.json','/rules/general-soap.json','/rules/neurology-stroke.json',
+  '/rules/parsers/nihss.js'
 ];
+// keep your fetch handler that SKIPS cross-origin so Whisper assets load from CDN
 // keep your existing fetch handler that skips cross-origin
 
 
