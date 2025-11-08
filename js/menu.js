@@ -25,7 +25,11 @@ export function initMenu() {
   <a href="rules.html" class="menu-btn" role="menuitem" style="text-decoration:none;display:inline-block;text-align:center;">Open</a>
 </div>
 <hr style="margin:.4rem 0;border-color:var(--border)"/>
-
+<div class="item" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.5rem;">
+  <span>Manual Calculators</span>
+  <a href="calculators.html" class="menu-btn" role="menuitem" style="text-decoration:none;display:inline-block;text-align:center;">Open</a>
+</div>
+<hr style="margin:.4rem 0;border-color:var(--border)"/>
   `;
 
   const hamburger = document.getElementById('hamburger');
