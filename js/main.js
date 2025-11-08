@@ -93,23 +93,68 @@ document.getElementById('copy-btn').addEventListener('click', async () => {
 
 // Reformat button
 document.getElementById('reformat-btn').addEventListener('click', async () => {
-  const [{ getTranscriptPlainText }, { reformatText }, { loadEnabledPacks }] = await Promise.all([
+  const [{ getTranscriptPlainText }, { reformatText }, { loadEnabledPacks, loadEnabledParsers }] = await Promise.all([
     import('./ui.js'),
     import('./format.js'),
     import('./rule-loader.js')
   ]);
 
   const input = getTranscriptPlainText();
-  const pack = await loadEnabledPacks();        // merged replacements/post/sectionizers
-  const out   = reformatText(input, pack);      // apply base flags + packs
+
+  // 1) Base formatting + JSON packs
+  const pack = await loadEnabledPacks();
+  const formatted = reformatText(input, pack);
 
   const box = document.getElementById('formatted');
   box.innerHTML = '';
-  out.split(/\n\n/).forEach(p => {
+  formatted.split(/\n\n/).forEach(p => {
     const el = document.createElement('p');
     el.textContent = p;
     box.appendChild(el);
   });
+
+  // 2) Parser modules (e.g., NIHSS)
+  const parsers = await loadEnabledParsers();
+  if (parsers.length) {
+    // Make a container for parser outputs
+    const divider = document.createElement('hr');
+    divider.style.margin = '1rem 0';
+    box.appendChild(divider);
+
+    for (const parser of parsers) {
+      if (typeof parser.parseNIHSSTranscript === 'function') {
+        const result = parser.parseNIHSSTranscript(input);
+
+        // Render sleek text
+        const h = document.createElement('h3');
+        h.textContent = `${parser.label} Result`;
+        const pre = document.createElement('pre');
+        pre.style.whiteSpace = 'pre-wrap';
+        pre.textContent = result.text;
+
+        // Download JSON button
+        const btnWrap = document.createElement('div');
+        const dl = document.createElement('button');
+        dl.className = 'copy-btn';
+        dl.textContent = 'Download JSON';
+        dl.addEventListener('click', () => {
+          const blob = new Blob([JSON.stringify(result.json, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'nihss-result.json';
+          a.click();
+          URL.revokeObjectURL(url);
+        });
+        btnWrap.appendChild(dl);
+
+        box.appendChild(h);
+        box.appendChild(pre);
+        box.appendChild(btnWrap);
+      }
+      // Add other parser kinds here as you create them
+    }
+  }
 });
 
 
