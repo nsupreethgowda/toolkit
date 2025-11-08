@@ -1,4 +1,3 @@
-// js/pwa.js
 export function registerSW(url) {
   if (!('serviceWorker' in navigator)) return;
   try {
