@@ -31,7 +31,9 @@ export function initMenu() {
 </div>
 <hr style="margin:.4rem 0;border-color:var(--border)"/>
   `;
-
+<a href="./rules.html" class="menu-btn">Open</a>
+<a href="./calculators.html" class="menu-btn">Open</a>
+  
   const hamburger = document.getElementById('hamburger');
   const menu = document.getElementById('menu');
 
